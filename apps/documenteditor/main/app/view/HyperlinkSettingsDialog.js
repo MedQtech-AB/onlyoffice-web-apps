@@ -49,7 +49,6 @@ define([
   "common/main/lib/util/utils",
   "common/main/lib/component/InputField",
   "common/main/lib/component/Window",
-
 ], function () {
   "use strict";
 
@@ -72,61 +71,6 @@ define([
             },
             options || {}
           );
-
-          this._arrLineRuleForDocumentType = [
-            {
-              displayValue: "Document",
-
-              value: "Document",
-            },
-            {
-              displayValue: "Layout",
-
-              value: "Layout",
-            },
-            {
-              displayValue: "Case",
-
-              value: "Case",
-            },
-            {
-              displayValue: "New Layout",
-
-              value: "New Layout",
-            },
-            {
-              displayValue: "New Case",
-
-              value: "New Case",
-            },
-            {
-              displayValue: "Global Link",
-
-              value: "Global Link",
-            },
-          ];
-
-          this._arrLineRuleForDocuments = JSON.parse(
-            Common.localStorage.getItem("this._arrLineRule")
-          );
-          this._arrLineRuleForActions =[
-            {
-              displayValue: "Redirect",
-
-              value: "Redirect",
-            },
-            {
-              displayValue: "Modal",
-
-              value: "Modal",
-            },
-            {
-              displayValue: 'New Tab',
-
-              value: 'New Tab',
-            },
-          
-          ]; ;
 
           this.template = [
             '<div class="box" style="height: 319px;">',
@@ -204,61 +148,82 @@ define([
             "click",
             _.bind(me.onLinkTypeClick, me, c_oHyperlinkType.InternalLink)
           );
-          me.inputCombo = new Common.UI.ComboBox({
+          me.documentLinkTo = new Common.UI.ComboBox({
             el: $("#id-dlg-hyperlink-document"),
             cls: "input-group-nr",
             menuStyle: "min-width: 85px;",
             editable: false,
-            data: this._arrLineRuleForDocumentType,
+            data: [],
             placeHolder: "- Select Specific Document -",
             dataHint: "1",
             dataHintDirection: "bottom",
             dataHintOffset: "big",
           });
-          me.inputCombo.on("selected", function (combo, record) {
-          
+
+          me.documentLinkTo.on("selected", async function (combo, record) {
             var val = record.value;
-            me.inputUrl.setData(val==="Document"?JSON.parse(
-              Common.localStorage.getItem("this._arrLineRule")
-            ):[]);
-           
+            try {
+              if (val === "Document") {
+                await me.companyDocuments();
+                me.connectedDocumentList.setDisabled(false);
+              } else if (val === "Layout") {
+                await me.companyLayouts();
+                me.connectedDocumentList.setDisabled(false);
+              } else if (val === "Case") {
+                await me.companyErrands();
+                me.connectedDocumentList.setDisabled(false);
+              } else if (val === "New Layout") {
+                me.connectedDocumentList.setData([]);
+                me.connectedDocumentList.setValue("");
+                me.connectedDocumentList.setDisabled(true);
+              } else if (val === "New Case") {
+                me.connectedDocumentList.setData([]);
+                me.connectedDocumentList.setValue("");
+                me.connectedDocumentList.setDisabled(true);
+              } else {
+                me.connectedDocumentList.setData([]);
+                me.connectedDocumentList.setDisabled(false);
+              }
+              me.btnOk.setDisabled(false);
+            } catch (error) {
+              console.error("Error:", error);
+            }
           });
-          
-          me.inputAction = new Common.UI.ComboBox({
+
+          me.documentLinkAction = new Common.UI.ComboBox({
             el: $("#id-dlg-hyperlink-action"),
             cls: "input-group-nr",
             menuStyle: "min-width: 85px;",
             placeHolder: "- Select Document Action -",
             editable: false,
-            data:this._arrLineRuleForActions,
+            data: [],
             dataHint: "1",
             dataHintDirection: "bottom",
             dataHintOffset: "big",
           });
 
-          me.inputUrl = new Common.UI.ComboBox({
+          me.connectedDocumentList = new Common.UI.ComboBox({
             el: $("#id-dlg-hyperlink-url"),
             cls: "input-group-nr",
             menuStyle: "min-width: 85px;",
             placeHolder: "- Select -",
             editable: false,
-            data:[],
+            data: [],
             dataHint: "1",
             dataHintDirection: "bottom",
             dataHintOffset: "big",
           });
 
-          me.inputUrl.on("selected", function (combo, record) {
-            me.isInputFirstChange && me.inputUrl.showError();
+          me.connectedDocumentList.on("selected", function (combo, record) {
+            me.isInputFirstChange && me.connectedDocumentList.showError();
             me.isInputFirstChange = false;
             var val = record.displayValue;
+            Common.localStorage.setItem("editorUrl-val", JSON.stringify(val));
             if (me.isAutoUpdate) {
               me.inputDisplay.setValue(val);
               me.isTextChanged = true;
             }
-            me.btnOk.setDisabled($.trim(val) == "");
           });
-
 
           me.inputDisplay = new Common.UI.InputField({
             el: $("#id-dlg-hyperlink-display"),
@@ -298,9 +263,9 @@ define([
 
         getFocusedComponents: function () {
           return [
-            this.inputUrl,
-            this.inputCombo,
-            this.inputAction,
+            this.connectedDocumentList,
+            this.documentLinkTo,
+            this.documentLinkAction,
             this.internalList,
             this.inputDisplay,
             this.inputTip,
@@ -410,20 +375,138 @@ define([
               this.internalList.collapseAll();
             }
             var rec = this.internalList.getSelectedRec();
-            this.btnOk.setDisabled(
-              !rec || (rec.get("level") == 0 && rec.get("index") > 0)
-            );
+
+            this.btnOk.setDisabled(false);
             var me = this;
             _.delay(function () {
               me.inputDisplay.focus();
             }, 50);
           } else {
-            this.btnOk.setDisabled($.trim(this.inputUrl.getValue()) == "");
+            this.btnOk.setDisabled(false);
             var me = this;
             _.delay(function () {
-              me.inputUrl.focus();
+              me.connectedDocumentList.focus();
             }, 50);
           }
+        },
+
+        documentLinkToTypes: async function () {
+          var me = this;
+          this.token = Common.localStorage.getItem("token");
+          this.getDocumentLinkToTypes = Common.localStorage.getItem(
+            "getDocumentLinkToTypes"
+          );
+
+          // Fetch data from the server
+          const response = await fetch(this.getDocumentLinkToTypes, {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${this.token}`,
+            },
+          });
+          if (!response.ok) {
+            throw new Error("Failed to fetch data");
+          }
+          const finalDocumentLinkToType = await response.json();
+          // Set the data for me.inputUrl
+          me.documentLinkTo.setData(finalDocumentLinkToType);
+        },
+
+        documentActionTypes: async function () {
+          var me = this;
+          this.token = Common.localStorage.getItem("token");
+          this.getDocumentActionTypes = Common.localStorage.getItem(
+            "getDocumentActionTypes"
+          );
+          // Fetch data from the server
+          const response = await fetch(this.getDocumentActionTypes, {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${this.token}`,
+            },
+          });
+          if (!response.ok) {
+            throw new Error("Failed to fetch data");
+          }
+          const documentActionTypes = await response.json();
+          // Set the data for me.inputUrl
+          me.documentLinkAction.setData(documentActionTypes);
+        },
+
+        companyLayouts: async function () {
+          var me = this;
+          this.token = Common.localStorage.getItem("token");
+          this.getLayoutUrl = Common.localStorage.getItem("getLayoutUrl");
+          // Fetch data from the server
+          const response = await fetch(this.getLayoutUrl, {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${this.token}`,
+            },
+          });
+          if (!response.ok) {
+            throw new Error("Failed to fetch data");
+          }
+          const data = await response.json();
+          // Process the data
+          const finalLayoutData = data.map((item) => ({
+            displayValue: item.id,
+            defaultValue: item.id,
+            value: item.id,
+          }));
+          // Set the data for me.inputUrl
+
+          me.connectedDocumentList.setData(finalLayoutData);
+        },
+
+        companyErrands: async function () {
+          var me = this;
+          this.token = Common.localStorage.getItem("token");
+          this.getErrandUrl = Common.localStorage.getItem("getErrandUrl");
+          // Fetch data from the server
+          const response = await fetch(this.getErrandUrl, {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${this.token}`,
+            },
+          });
+          if (!response.ok) {
+            throw new Error("Failed to fetch data");
+          }
+          const data = await response.json();
+          // Process the data
+          const finalErrandData = data.map((item) => ({
+            displayValue: item.id,
+            defaultValue: item.id,
+            value: item.id,
+          }));
+          // Set the data for me.inputUrl
+          me.connectedDocumentList.setData(finalErrandData);
+        },
+
+        companyDocuments: async function () {
+          var me = this;
+          this.token = Common.localStorage.getItem("token");
+          this.getDocumentUrl = Common.localStorage.getItem("getDocumentUrl");
+          // Fetch data from the server
+          const response = await fetch(this.getDocumentUrl, {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${this.token}`,
+            },
+          });
+          if (!response.ok) {
+            throw new Error("Failed to fetch data");
+          }
+          const data = await response.json();
+          // Process the data
+          const finalDocumentData = data.map((item) => ({
+            displayValue: item.title,
+            defaultValue: item.title,
+            value: item.id,
+          }));
+          // Set the data for me.connectedDocumentList
+          me.connectedDocumentList.setData(finalDocumentData);
         },
 
         onLinkTypeClick: function (type, btn, event) {
@@ -437,16 +520,14 @@ define([
                   : ""
               );
             } else {
-              this.inputDisplay.setValue(this.inputUrl.getValue());
+              this.inputDisplay.setValue(this.connectedDocumentList.getValue());
             }
             this.isTextChanged = true;
           }
         },
 
         onSelectItem: function (picker, item, record, e) {
-          this.btnOk.setDisabled(
-            record.get("level") == 0 && record.get("index") > 0
-          );
+          this.btnOk.setDisabled(false);
           if (this.isAutoUpdate) {
             this.inputDisplay.setValue(
               record.get("level") || record.get("index") == 0
@@ -461,8 +542,13 @@ define([
           Common.UI.Window.prototype.show.apply(this, arguments);
         },
 
-        demoLink:async function () {
+        close: function () {
+          Common.UI.Window.prototype.close.apply(this, arguments);
+          Common.localStorage.removeItem("documentLinkId");
+          Common.localStorage.removeItem("link_Id");
+        },
 
+        demoLink: async function () {
           var me = this,
             props = new Asc.CHyperlinkProperty(),
             display = "",
@@ -471,26 +557,32 @@ define([
               : c_oHyperlinkType.InternalLink;
 
           if (type == c_oHyperlinkType.WebLink) {
-            const id=await this.createLink()
-            this.editorUrl= Common.localStorage.getItem('editorUrl')
-            var url = `${this.editorUrl}/${id}`// `${$.trim(me.inputDisplay.getValue())}/${id}`;
+            const documentLinkId = Number(
+              Common.localStorage.getItem("documentLinkId")
+            );
+            if (documentLinkId) {
+              const id = await this.updateLink(documentLinkId);
+              this.editorUrl = Common.localStorage.getItem("editorUrl");
+              var url = `${this.editorUrl}/${id}`; // `${$.trim(me.inputDisplay.getValue())}/${id}`;
+            } else {
+              const id = await this.createLink();
+              this.editorUrl = Common.localStorage.getItem("editorUrl");
+              var url = `${this.editorUrl}/${id}`; // `${$.trim(me.inputDisplay.getValue())}/${id}`;
+            }
 
-           if (
-                me.urlType !== AscCommon.c_oAscUrlType.Unsafe &&
-                !/(((^https?)|(^ftp)):\/\/)|(^mailto:)/i.test(url)
-              )
-                // url =
-                //   (me.urlType == AscCommon.c_oAscUrlType.Email
-                //     ? "mailto:"
-                //     : "http://") + url;
-  
+            if (
+              me.urlType !== AscCommon.c_oAscUrlType.Unsafe &&
+              !/(((^https?)|(^ftp)):\/\/)|(^mailto:)/i.test(url)
+            )
+              // url =
+              //   (me.urlType == AscCommon.c_oAscUrlType.Email
+              //     ? "mailto:"
+              //     : "http://") + url;
+
               url = url.replace(new RegExp("%20", "g"), " ");
-              props.put_Value(url);
-              props.put_Bookmark(null);
-              display = url;
-          
-        
-    
+            props.put_Value(url);
+            props.put_Bookmark(null);
+            display = url;
           } else {
             var rec = this.internalList.getSelectedRec();
             if (rec) {
@@ -525,16 +617,16 @@ define([
         },
         createLink: async function () {
           this.token = Common.localStorage.getItem("token");
-          this.linkUrl =Common.localStorage.getItem('linkUrl');
-          this.documentId = Common.localStorage.getItem('documentId');
+          this.linkUrl = Common.localStorage.getItem("linkUrl");
+          this.documentId = Common.localStorage.getItem("documentId");
 
           return await fetch(this.linkUrl, {
             method: "POST",
             body: JSON.stringify({
-              link_to: this.inputCombo.getValue()||"Document",
-              id_of_to: Number(this.inputUrl.getValue()),
-              action: this.inputAction.getValue()||'New Tab',
-              document_id:Number(this.documentId)
+              link_to: this.documentLinkTo.getValue() || "Document",
+              id_of_to: Number(this.connectedDocumentList.getValue()),
+              action: this.documentLinkAction.getValue() || "New Tab",
+              document_id: Number(this.documentId),
             }),
             headers: {
               Accept: "application/json",
@@ -551,9 +643,65 @@ define([
             });
         },
 
-        setSettings: function (props) {
+        updateLink: async function (documentLinkId) {
+          this.token = Common.localStorage.getItem("token");
+          this.linkUrl = Common.localStorage.getItem("linkUrl");
+          this.documentId = Common.localStorage.getItem("documentId");
+
+          return await fetch(`${this.linkUrl}/update`, {
+            method: "POST",
+            body: JSON.stringify({
+              id: documentLinkId,
+              link_to: this.documentLinkTo.getValue() || "Document",
+              id_of_to: Number(this.connectedDocumentList.getValue()),
+              action: this.documentLinkAction.getValue() || "New Tab",
+              document_id: Number(this.documentId),
+            }),
+            headers: {
+              Accept: "application/json",
+              "Content-Type": "application/json;charset=UTF-8",
+              Authorization: `Bearer ${this.token}`,
+            },
+          })
+            .then((res) => res.json())
+            .then(async (data) => {
+              Common.localStorage.removeItem("documentLinkId");
+              return await data.link_no;
+            })
+            .catch((err) => {
+              console.log(err, "err");
+            });
+        },
+
+        linkData: async function (linkNo) {
+          Common.localStorage.setItem("link_Id", JSON.stringify(linkNo));
+          this.token = Common.localStorage.getItem("token");
+          this.documentId = Common.localStorage.getItem("documentId");
+          this.linkUrl = Common.localStorage.getItem("linkUrl");
+          return await fetch(
+            `${this.linkUrl}/link?documentId=${this.documentId}&linkNo=${linkNo}`,
+            {
+              method: "GET",
+              headers: {
+                Authorization: `Bearer ${this.token}`,
+              },
+            }
+          )
+            .then((response) => response.json())
+            .then((linkData) => {
+              return linkData;
+            })
+            .catch((error) => {
+              console.error("Error fetching data:", error);
+            });
+        },
+
+        setSettings: async function (props) {
           if (props) {
             var me = this;
+
+            await me.documentLinkToTypes();
+            await me.documentActionTypes();
 
             var bookmark = props.get_Bookmark(),
               type =
@@ -571,13 +719,57 @@ define([
 
             if (type == c_oHyperlinkType.WebLink) {
               if (props.get_Value()) {
-                me.inputUrl.setValue(
-                  props.get_Value().replace(new RegExp(" ", "g"), "%20")
-                );
+                const urlString = props.get_Value();
+                const regex = /\/editor\/(\d+)$/;
+                const match = urlString.match(regex);
+
+                if (match && match[1]) {
+                  const number = parseInt(match[1]);
+
+                  await this.linkData(number).then(async (documentLinkData) => {
+                    Common.localStorage.setItem(
+                      "documentLinkId",
+                      JSON.stringify(documentLinkData.id)
+                    );
+
+                    if (documentLinkData.link_to === "Layout") {
+                      await me.companyLayouts();
+                      me.connectedDocumentList.setValue(
+                        documentLinkData.link_document.id ?? ""
+                      );
+                    } else if (documentLinkData.link_to === "Case") {
+                      await me.companyErrands();
+                      me.connectedDocumentList.setValue(
+                        documentLinkData.link_document.id ?? ""
+                      );
+                    } else if (documentLinkData.link_to === "Document") {
+                      await me.companyDocuments();
+                      me.connectedDocumentList.setValue(
+                        documentLinkData.link_document?.title ?? ""
+                      );
+                    } else if (documentLinkData.link_to === "New Layout") {
+                      me.connectedDocumentList.setData([]);
+                      me.connectedDocumentList.setValue("");
+                      me.connectedDocumentList.setDisabled(true);
+                    } else if (documentLinkData.link_to === "New Case") {
+                      me.connectedDocumentList.setData([]);
+                      me.connectedDocumentList.setValue("");
+                      me.connectedDocumentList.setDisabled(true);
+                    }
+                    me.documentLinkTo.setValue(documentLinkData.link_to ?? "");
+                    me.documentLinkAction.setValue(
+                      documentLinkData.action ?? ""
+                    );
+                  });
+                } else {
+                  console.log("No match found");
+                }
               } else {
-                me.inputUrl.setValue("");
+                me.connectedDocumentList.setValue(
+                  me.connectedDocumentList.value
+                );
               }
-              this.btnOk.setDisabled($.trim(this.inputUrl.getValue()) == "");
+              this.btnOk.setDisabled(false);
             } else {
               if (props.is_TopOfDocument()) this.internalList.selectByIndex(0);
               else if (props.is_Heading()) {
@@ -609,9 +801,7 @@ define([
                 }
               }
               var rec = this.internalList.getSelectedRec();
-              this.btnOk.setDisabled(
-                !rec || (rec.get("level") == 0 && rec.get("index") > 0)
-              );
+              this.btnOk.setDisabled(false);
             }
 
             if (props.get_Text() !== null) {
@@ -620,7 +810,8 @@ define([
               me.isAutoUpdate =
                 me.inputDisplay.getValue() == "" ||
                 (type == c_oHyperlinkType.WebLink &&
-                  me.inputUrl.getValue() == me.inputDisplay.getValue());
+                  me.connectedDocumentList.getValue() ==
+                    me.inputDisplay.getValue());
             } else {
               me.inputDisplay.setValue(this.textDefault);
               me.inputDisplay.setDisabled(true);
@@ -634,25 +825,19 @@ define([
         },
 
         getSettings: function () {
-        
-        //  const props =  this.demoLink();
-        //  Common.localStorage.setItem('PROPS',JSON.stringify(props))
-        return {}
-  
-    
-       },
+          return {};
+        },
 
         onBtnClick: function (event) {
           this._handleInput(event.currentTarget.attributes["result"].value);
-        
-       },
+        },
 
         onPrimary: function (event) {
           this._handleInput("ok");
           return false;
         },
 
-        _handleInput:async function (state) {
+        _handleInput: async function (state) {
           if (this.options.handler) {
             if (state == "ok") {
               if (this.btnExternal.isActive()) {
@@ -678,20 +863,13 @@ define([
                   this.btnInternal.isActive()
                 ); // save last added hyperlink
 
-
-                const props = await this.demoLink();
-                this.options.handler.call(this, this, state,props);
-            }else{
+              const props = await this.demoLink();
+              this.options.handler.call(this, this, state, props);
+            } else {
               this.options.handler.call(this, this, state);
             }
-        
-  
-    
-      
-       
           }
           this.close();
-    
         },
 
         textUrl: "Link to",
