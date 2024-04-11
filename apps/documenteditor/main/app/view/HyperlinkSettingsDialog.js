@@ -732,33 +732,36 @@ define([
                       JSON.stringify(documentLinkData.id)
                     );
 
-                    if (documentLinkData.link_to === "Layout") {
+                    const linkTo = documentLinkData.link_to;
+                    const linkDocument = documentLinkData.link_document;
+
+                    if (linkTo === "Layout") {
+                      me.connectedDocumentList.setValue(linkDocument.id || "");
                       await me.companyLayouts();
-                      me.connectedDocumentList.setValue(
-                        documentLinkData.link_document.id ?? ""
-                      );
-                    } else if (documentLinkData.link_to === "Case") {
+                    }
+                    if (linkTo === "Case") {
+                      me.connectedDocumentList.setValue(linkDocument.id || "");
                       await me.companyErrands();
+                    }
+                    if (linkTo === "Document") {
                       me.connectedDocumentList.setValue(
-                        documentLinkData.link_document.id ?? ""
+                        linkDocument.title || ""
                       );
-                    } else if (documentLinkData.link_to === "Document") {
                       await me.companyDocuments();
-                      me.connectedDocumentList.setValue(
-                        documentLinkData.link_document?.title ?? ""
-                      );
-                    } else if (documentLinkData.link_to === "New Layout") {
-                      me.connectedDocumentList.setData([]);
-                      me.connectedDocumentList.setValue("");
-                      me.connectedDocumentList.setDisabled(true);
-                    } else if (documentLinkData.link_to === "New Case") {
+                    }
+                    if (linkTo === "New Layout") {
                       me.connectedDocumentList.setData([]);
                       me.connectedDocumentList.setValue("");
                       me.connectedDocumentList.setDisabled(true);
                     }
-                    me.documentLinkTo.setValue(documentLinkData.link_to ?? "");
+                    if (linkTo === "New Case") {
+                      me.connectedDocumentList.setData([]);
+                      me.connectedDocumentList.setValue("");
+                      me.connectedDocumentList.setDisabled(true);
+                    }
+                    me.documentLinkTo.setValue(linkTo || "");
                     me.documentLinkAction.setValue(
-                      documentLinkData.action ?? ""
+                      documentLinkData.action || ""
                     );
                   });
                 } else {
