@@ -733,23 +733,23 @@ define([
                     );
 
                     const linkTo = documentLinkData.link_to;
-                    const linkDocument = documentLinkData.link_document;
 
                     if (linkTo === "Layout") {
-                      me.connectedDocumentList.setValue(linkDocument.id || "");
                       await me.companyLayouts();
-                    }
-                    if (linkTo === "Case") {
-                      me.connectedDocumentList.setValue(linkDocument.id || "");
-                      await me.companyErrands();
-                    }
-                    if (linkTo === "Document") {
                       me.connectedDocumentList.setValue(
-                        linkDocument.title || ""
+                        documentLinkData.link_document.id || ""
                       );
+                    } else if (documentLinkData.link_to === "Case") {
+                      await me.companyErrands();
+                      me.connectedDocumentList.setValue(
+                        documentLinkData.link_document.id || ""
+                      );
+                    } else if (linkTo === "Document") {
                       await me.companyDocuments();
-                    }
-                    if (linkTo === "New Layout") {
+                      me.connectedDocumentList.setValue(
+                        documentLinkData.link_document.title || ""
+                      );
+                    } else if (documentLinkData.link_to === "New Layout") {
                       me.connectedDocumentList.setData([]);
                       me.connectedDocumentList.setValue("");
                       me.connectedDocumentList.setDisabled(true);
@@ -759,7 +759,7 @@ define([
                       me.connectedDocumentList.setValue("");
                       me.connectedDocumentList.setDisabled(true);
                     }
-                    me.documentLinkTo.setValue(linkTo || "");
+                    me.documentLinkTo.setValue(documentLinkData.link_to || "");
                     me.documentLinkAction.setValue(
                       documentLinkData.action || ""
                     );
