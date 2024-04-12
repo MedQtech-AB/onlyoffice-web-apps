@@ -561,13 +561,14 @@ define([
               Common.localStorage.getItem("documentLinkId")
             );
             if (documentLinkId) {
-              const id = await this.updateLink(documentLinkId);
-              this.editorUrl = Common.localStorage.getItem("editorUrl");
-              var url = `${this.editorUrl}/${id}`; // `${$.trim(me.inputDisplay.getValue())}/${id}`;
+              const data = await this.updateLink(documentLinkId);
+              this.originUrl = Common.localStorage.getItem("originUrl");
+              var url = `${this.originUrl}/${data.link_no}`;
             } else {
-              const id = await this.createLink();
-              this.editorUrl = Common.localStorage.getItem("editorUrl");
-              var url = `${this.editorUrl}/${id}`; // `${$.trim(me.inputDisplay.getValue())}/${id}`;
+              const data = await this.createLink();
+
+              this.originUrl = Common.localStorage.getItem("originUrl");
+              var url = `${this.originUrl}/${data.link_no}`;
             }
 
             if (
@@ -636,7 +637,7 @@ define([
           })
             .then((res) => res.json())
             .then(async (data) => {
-              return await data.link_no;
+              return await data;
             })
             .catch((err) => {
               console.log(err, "err");
@@ -666,7 +667,7 @@ define([
             .then((res) => res.json())
             .then(async (data) => {
               Common.localStorage.removeItem("documentLinkId");
-              return await data.link_no;
+              return await data;
             })
             .catch((err) => {
               console.log(err, "err");
@@ -720,11 +721,16 @@ define([
             if (type == c_oHyperlinkType.WebLink) {
               if (props.get_Value()) {
                 const urlString = props.get_Value();
-                const regex = /\/editor\/(\d+)$/;
-                const match = urlString.match(regex);
+                const connectionDocumentUrl = urlString;
+                const splitConnectionDocumentUrl =
+                  connectionDocumentUrl.split("/");
+                const linkNo =
+                  splitConnectionDocumentUrl[
+                    splitConnectionDocumentUrl.length - 1
+                  ];
 
-                if (match && match[1]) {
-                  const number = parseInt(match[1]);
+                if (linkNo) {
+                  const number = parseInt(linkNo);
 
                   await this.linkData(number).then(async (documentLinkData) => {
                     Common.localStorage.setItem(
@@ -736,19 +742,40 @@ define([
 
                     if (linkTo === "Layout") {
                       await me.companyLayouts();
-                      me.connectedDocumentList.setValue(
-                        documentLinkData.link_document.id || ""
-                      );
+                      if (
+                        documentLinkData.link_document &&
+                        documentLinkData.link_document.id
+                      ) {
+                        me.connectedDocumentList.setValue(
+                          documentLinkData.link_document.id
+                        );
+                      } else {
+                        me.connectedDocumentList.setValue("");
+                      }
                     } else if (documentLinkData.link_to === "Case") {
                       await me.companyErrands();
-                      me.connectedDocumentList.setValue(
-                        documentLinkData.link_document.id || ""
-                      );
+                      if (
+                        documentLinkData.link_document &&
+                        documentLinkData.link_document.id
+                      ) {
+                        me.connectedDocumentList.setValue(
+                          documentLinkData.link_document.id
+                        );
+                      } else {
+                        me.connectedDocumentList.setValue("");
+                      }
                     } else if (linkTo === "Document") {
                       await me.companyDocuments();
-                      me.connectedDocumentList.setValue(
-                        documentLinkData.link_document.title || ""
-                      );
+                      if (
+                        documentLinkData.link_document &&
+                        documentLinkData.link_document.title
+                      ) {
+                        me.connectedDocumentList.setValue(
+                          documentLinkData.link_document.title
+                        );
+                      } else {
+                        me.connectedDocumentList.setValue("");
+                      }
                     } else if (documentLinkData.link_to === "New Layout") {
                       me.connectedDocumentList.setData([]);
                       me.connectedDocumentList.setValue("");
