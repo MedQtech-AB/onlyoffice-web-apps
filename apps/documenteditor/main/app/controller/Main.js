@@ -674,8 +674,8 @@ define([
             );
 
             Common.localStorage.setItem(
-              "editorUrl",
-              this.editorConfig.editorUrl
+              "originUrl",
+              this.editorConfig.originUrl
             );
             Common.localStorage.removeItem("this._arrLineRule");
 
