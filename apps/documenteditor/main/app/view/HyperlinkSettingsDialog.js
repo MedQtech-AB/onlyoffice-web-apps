@@ -214,15 +214,27 @@ define([
             dataHintOffset: "big",
           });
 
+          
           me.connectedDocumentList.on("selected", function (combo, record) {
             me.isInputFirstChange && me.connectedDocumentList.showError();
             me.isInputFirstChange = false;
             var val = record.displayValue;
             Common.localStorage.setItem("editorUrl-val", JSON.stringify(val));
-            if (me.isAutoUpdate) {
-              me.inputDisplay.setValue(val);
+            // if (me.isAutoUpdate) {
+              this.originUrl = Common.localStorage.getItem("originUrl");
+               this.link_Id = Common.localStorage.getItem("link_Id");
+               const linkTo = me.documentLinkTo.getValue();
+           
+               if(linkTo && this.link_Id ){
+                me.inputDisplay.setValue(`${this.originUrl}/${linkTo}/${this.link_Id}`);
+                me.inputTip.setValue(`${this.originUrl}/${linkTo}/${this.link_Id}`);
+               }else{
+                me.inputDisplay.setValue(val);
+                me.inputTip.setValue(val);
+               }
+
               me.isTextChanged = true;
-            }
+            // }
           });
 
           me.inputDisplay = new Common.UI.InputField({
@@ -272,6 +284,14 @@ define([
           ];
         },
 
+
+  removeSpaceAndCamelCase:function (text) {
+  return text.replace(/\s(.)/g, function(match) {
+    return match.toUpperCase();
+  }).replace(/\s/g, '').replace(/^(.)/, function(match) {
+    return match.toLowerCase();
+  });
+},
         ShowHideElem: function (value) {
           this.externalPanel.toggleClass(
             "hidden",
@@ -562,15 +582,18 @@ define([
             );
             if (documentLinkId) {
               const data = await this.updateLink(documentLinkId);
+              const linkTo=this.removeSpaceAndCamelCase(data.link_to||'');
               this.originUrl = Common.localStorage.getItem("originUrl");
-              var url = `${this.originUrl}/${data.link_no}`;
+              var url = `${this.originUrl}/${linkTo}/${data.link_no}`;
+           
+               display = url;
             } else {
               const data = await this.createLink();
+              const linkTo=this.removeSpaceAndCamelCase(data.link_to||'');
 
               this.originUrl = Common.localStorage.getItem("originUrl");
-              var url = `${this.originUrl}/${data.link_no}`;
+              var url = `${this.originUrl}/${linkTo}/${data.link_no}`;
             }
-
             if (
               me.urlType !== AscCommon.c_oAscUrlType.Unsafe &&
               !/(((^https?)|(^ftp)):\/\/)|(^mailto:)/i.test(url)
@@ -603,13 +626,15 @@ define([
               _.isEmpty(me.inputDisplay.getValue()) ||
               (type == c_oHyperlinkType.WebLink && me.isAutoUpdate)
             )
-              me.inputDisplay.setValue(display);
+              me.inputDisplay.setValue(display);      
+
             props.put_Text(me.inputDisplay.getValue());
           } else {
             props.put_Text(null);
           }
+          props.put_Text(display);
 
-          props.put_ToolTip(me.inputTip.getValue());
+          props.put_ToolTip(display);
           props.put_InternalHyperlink(
             me._originalProps.get_InternalHyperlink()
           );
@@ -728,7 +753,7 @@ define([
                   splitConnectionDocumentUrl[
                     splitConnectionDocumentUrl.length - 1
                   ];
-
+                
                 if (linkNo) {
                   const number = parseInt(linkNo);
 
@@ -738,7 +763,9 @@ define([
                       JSON.stringify(documentLinkData.id)
                     );
 
-                    const linkTo = documentLinkData.link_to;
+                   const linkTo = documentLinkData.link_to;
+
+              
 
                     if (linkTo === "Layout") {
                       await me.companyLayouts();
@@ -835,7 +862,7 @@ define([
             }
 
             if (props.get_Text() !== null) {
-              me.inputDisplay.setValue(props.get_Text());
+              me.inputDisplay.setValue(props.get_Text());//set default value 
               me.inputDisplay.setDisabled(false);
               me.isAutoUpdate =
                 me.inputDisplay.getValue() == "" ||
