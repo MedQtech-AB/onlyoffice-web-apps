@@ -563,12 +563,12 @@ define([
             if (documentLinkId) {
               const data = await this.updateLink(documentLinkId);
               this.originUrl = Common.localStorage.getItem("originUrl");
-              var url = `${this.originUrl}/${data.link_no}`;
+              var url = `${this.originUrl}/${data.id}`;
             } else {
               const data = await this.createLink();
 
               this.originUrl = Common.localStorage.getItem("originUrl");
-              var url = `${this.originUrl}/${data.link_no}`;
+              var url = `${this.originUrl}/${data.id}`;
             }
 
             if (
@@ -674,13 +674,12 @@ define([
             });
         },
 
-        linkData: async function (linkNo) {
-          Common.localStorage.setItem("link_Id", JSON.stringify(linkNo));
+        linkData: async function (linkId) {
+          Common.localStorage.setItem("link_Id", JSON.stringify(linkId));
           this.token = Common.localStorage.getItem("token");
-          this.documentId = Common.localStorage.getItem("documentId");
           this.linkUrl = Common.localStorage.getItem("linkUrl");
           return await fetch(
-            `${this.linkUrl}/link?documentId=${this.documentId}&linkNo=${linkNo}`,
+            `${this.linkUrl}/link?linkId=${linkId}`,
             {
               method: "GET",
               headers: {
@@ -724,13 +723,13 @@ define([
                 const connectionDocumentUrl = urlString;
                 const splitConnectionDocumentUrl =
                   connectionDocumentUrl.split("/");
-                const linkNo =
+                const linkId =
                   splitConnectionDocumentUrl[
                     splitConnectionDocumentUrl.length - 1
                   ];
 
-                if (linkNo) {
-                  const number = parseInt(linkNo);
+                if (linkId) {
+                  const number = parseInt(linkId);
 
                   await this.linkData(number).then(async (documentLinkData) => {
                     Common.localStorage.setItem(
