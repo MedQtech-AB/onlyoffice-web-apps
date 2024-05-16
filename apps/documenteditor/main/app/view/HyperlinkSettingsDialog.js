@@ -164,10 +164,14 @@ define([
             var val = record.value;
             try {
               if (val === "Document") {
-                await me.companyDocuments();
+                await me.companyDocuments(val);
+                me.connectedDocumentList.setDisabled(false);
+              } else if (val === "New Document From Template") {
+                const isTemplate = true;
+                await me.companyDocuments(val);
                 me.connectedDocumentList.setDisabled(false);
               } else if (val === "Layout") {
-                await me.companyLayouts();
+                await me.companyDocuments(val);
                 me.connectedDocumentList.setDisabled(false);
               } else if (val === "Case") {
                 await me.companyErrands();
@@ -444,7 +448,9 @@ define([
               Authorization: `Bearer ${this.token}`,
             },
           });
+
           if (!response.ok) {
+            me.connectedDocumentList.setData([]);
             throw new Error("Failed to fetch data");
           }
           const data = await response.json();
@@ -455,7 +461,6 @@ define([
             value: item.id,
           }));
           // Set the data for me.inputUrl
-
           me.connectedDocumentList.setData(finalLayoutData);
         },
 
@@ -470,7 +475,9 @@ define([
               Authorization: `Bearer ${this.token}`,
             },
           });
+
           if (!response.ok) {
+            me.connectedDocumentList.setData([]);
             throw new Error("Failed to fetch data");
           }
           const data = await response.json();
@@ -484,12 +491,14 @@ define([
           me.connectedDocumentList.setData(finalErrandData);
         },
 
-        companyDocuments: async function () {
+        companyDocuments: async function (documentLinkTo) {
           var me = this;
           this.token = Common.localStorage.getItem("token");
           this.getDocumentUrl = Common.localStorage.getItem("getDocumentUrl");
           // Fetch data from the server
-          const response = await fetch(this.getDocumentUrl, {
+          const url = `${this.getDocumentUrl}/${documentLinkTo}`;
+
+          const response = await fetch(url, {
             method: "GET",
             headers: {
               Authorization: `Bearer ${this.token}`,
@@ -678,15 +687,12 @@ define([
           Common.localStorage.setItem("link_Id", JSON.stringify(linkId));
           this.token = Common.localStorage.getItem("token");
           this.linkUrl = Common.localStorage.getItem("linkUrl");
-          return await fetch(
-            `${this.linkUrl}/link?linkId=${linkId}`,
-            {
-              method: "GET",
-              headers: {
-                Authorization: `Bearer ${this.token}`,
-              },
-            }
-          )
+          return await fetch(`${this.linkUrl}/link?linkId=${linkId}`, {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${this.token}`,
+            },
+          })
             .then((response) => response.json())
             .then((linkData) => {
               return linkData;
@@ -739,19 +745,20 @@ define([
 
                     const linkTo = documentLinkData.link_to;
 
-                    if (linkTo === "Layout") {
-                      await me.companyLayouts();
-                      if (
-                        documentLinkData.link_document &&
-                        documentLinkData.link_document.id
-                      ) {
-                        me.connectedDocumentList.setValue(
-                          documentLinkData.link_document.id
-                        );
-                      } else {
-                        me.connectedDocumentList.setValue("");
-                      }
-                    } else if (documentLinkData.link_to === "Case") {
+                    // if (linkTo === "Layout") {
+                    //   await me.companyLayouts();
+                    //   if (
+                    //     documentLinkData.link_document &&
+                    //     documentLinkData.link_document.id
+                    //   ) {
+                    //     me.connectedDocumentList.setValue(
+                    //       documentLinkData.link_document.id
+                    //     );
+                    //   } else {
+                    //     me.connectedDocumentList.setValue("");
+                    //   }
+                    // } else
+                    if (documentLinkData.link_to === "Case") {
                       await me.companyErrands();
                       if (
                         documentLinkData.link_document &&
@@ -763,8 +770,12 @@ define([
                       } else {
                         me.connectedDocumentList.setValue("");
                       }
-                    } else if (linkTo === "Document") {
-                      await me.companyDocuments();
+                    } else if (
+                      linkTo === "Document" ||
+                      linkTo === "New Document From Template" ||
+                      linkTo === "Layout"
+                    ) {
+                      await me.companyDocuments(linkTo);
                       if (
                         documentLinkData.link_document &&
                         documentLinkData.link_document.title
