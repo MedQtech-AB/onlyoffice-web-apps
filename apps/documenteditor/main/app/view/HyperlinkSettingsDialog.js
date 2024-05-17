@@ -437,33 +437,6 @@ define([
           me.documentLinkAction.setData(documentActionTypes);
         },
 
-        companyLayouts: async function () {
-          var me = this;
-          this.token = Common.localStorage.getItem("token");
-          this.getLayoutUrl = Common.localStorage.getItem("getLayoutUrl");
-          // Fetch data from the server
-          const response = await fetch(this.getLayoutUrl, {
-            method: "GET",
-            headers: {
-              Authorization: `Bearer ${this.token}`,
-            },
-          });
-
-          if (!response.ok) {
-            me.connectedDocumentList.setData([]);
-            throw new Error("Failed to fetch data");
-          }
-          const data = await response.json();
-          // Process the data
-          const finalLayoutData = data.map((item) => ({
-            displayValue: item.id,
-            defaultValue: item.id,
-            value: item.id,
-          }));
-          // Set the data for me.inputUrl
-          me.connectedDocumentList.setData(finalLayoutData);
-        },
-
         companyErrands: async function () {
           var me = this;
           this.token = Common.localStorage.getItem("token");
@@ -745,19 +718,6 @@ define([
 
                     const linkTo = documentLinkData.link_to;
 
-                    // if (linkTo === "Layout") {
-                    //   await me.companyLayouts();
-                    //   if (
-                    //     documentLinkData.link_document &&
-                    //     documentLinkData.link_document.id
-                    //   ) {
-                    //     me.connectedDocumentList.setValue(
-                    //       documentLinkData.link_document.id
-                    //     );
-                    //   } else {
-                    //     me.connectedDocumentList.setValue("");
-                    //   }
-                    // } else
                     if (documentLinkData.link_to === "Case") {
                       await me.companyErrands();
                       if (
