@@ -656,10 +656,7 @@ define([
               "getDocumentUrl",
               this.editorConfig.getDocumentUrl
             );
-            Common.localStorage.setItem(
-              "getLayoutUrl",
-              this.editorConfig.getLayoutUrl
-            );
+
             Common.localStorage.setItem(
               "getErrandUrl",
               this.editorConfig.getErrandUrl
