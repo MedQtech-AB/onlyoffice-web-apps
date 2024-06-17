@@ -86,16 +86,22 @@ define([
 
             '<div id="id-external-link">',
             '<div class="input-row">',
-            "<label>" + "Edit" + this.textUrl + "</label>",
+            "<label>" + this.textUrl + "</label>",
             "</div>",
             '<div id="id-dlg-hyperlink-document" class="input-row" style="margin-bottom: 5px;"></div>',
+            '<div class="input-row">',
+            "<label>" + this.textAction + "</label>",
+            "</div>",
             '<div id="id-dlg-hyperlink-action" class="input-row" style="margin-bottom: 5px;"></div>',
+            '<div class="input-row">',
+            "<label>" + this.textTarget + "</label>",
+            "</div>",
             '<div id="id-dlg-hyperlink-url" class="input-row" style="margin-bottom: 5px;"></div>',
             "</div>",
 
             '<div id="id-internal-link">',
             '<div class="input-row">',
-            "<label>" + this.textUrl + "chandani khanesha" + "</label>",
+            "<label>" + this.textUrl + "</label>",
             "</div>",
             '<div id="id-dlg-hyperlink-list" style="width:100%; height: 171px;"></div>',
             "</div>",
@@ -105,11 +111,11 @@ define([
             "</div>",
             '<div id="id-dlg-hyperlink-display" class="input-row" style="margin-bottom: 5px;"></div>',
 
-            '<div class="input-row">',
-            "<label>" + this.textTooltip + "</label>",
-            "</div>",
-            '<div id="id-dlg-hyperlink-tip" class="input-row" style="margin-bottom: 5px;"></div>',
-            "</div>",
+            // '<div class="input-row">',
+            // "<label>" + this.textTooltip + "</label>",
+            // "</div>",
+            // '<div id="id-dlg-hyperlink-tip" class="input-row" style="margin-bottom: 5px;"></div>',
+            // "</div>",
           ].join("");
 
           this.options.tpl = _.template(this.template)(this.options);
@@ -186,7 +192,7 @@ define([
                 me.connectedDocumentList.setDisabled(true);
               } else {
                 me.connectedDocumentList.setData([]);
-                me.connectedDocumentList.setDisabled(false);
+                me.connectedDocumentList.setDisabled(true);
               }
               me.btnOk.setDisabled(false);
             } catch (error) {
@@ -435,6 +441,7 @@ define([
           const documentActionTypes = await response.json();
           // Set the data for me.inputUrl
           me.documentLinkAction.setData(documentActionTypes);
+          me.documentLinkAction.setValue("New Tab");
         },
 
         companyErrands: async function () {
@@ -483,7 +490,7 @@ define([
           const data = await response.json();
           // Process the data
           const finalDocumentData = data.map((item) => ({
-            displayValue: item.title,
+            displayValue: `${item.title}, ${item.type_label}, ${item.doc_number}:${item.version} - ${item.created_by_company_has_user.user.first_name} ${item.created_by_company_has_user.user.last_name}`,
             defaultValue: item.title,
             value: item.id,
           }));
@@ -758,7 +765,7 @@ define([
                     }
                     me.documentLinkTo.setValue(documentLinkData.link_to || "");
                     me.documentLinkAction.setValue(
-                      documentLinkData.action || ""
+                      documentLinkData.action || "New Tab"
                     );
                   });
                 } else {
@@ -873,6 +880,8 @@ define([
         },
 
         textUrl: "Link to",
+        textAction: "Action",
+        textTarget: "Target to",
         textDisplay: "Display",
         txtEmpty: "This field is required",
         txtNotUrl:
