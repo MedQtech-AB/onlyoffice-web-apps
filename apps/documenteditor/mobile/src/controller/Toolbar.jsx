@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Device } from '../../../../common/mobile/utils/device';
 import { inject, observer } from 'mobx-react';
 import { f7 } from 'framework7-react';
@@ -11,6 +11,9 @@ const ToolbarController = inject('storeAppOptions', 'users', 'storeReview', 'sto
     const _t = t("Toolbar", { returnObjects: true });
     const appOptions = props.storeAppOptions;
     const isEdit = appOptions.isEdit;
+    const isForm = appOptions.isForm;
+    const canFillForms = appOptions.canFillForms;
+    const canSubmitForms = appOptions.canSubmitForms;
     const storeVersionHistory = props.storeVersionHistory;
     const isVersionHistoryMode = storeVersionHistory.isVersionHistoryMode;
     const isViewer = appOptions.isViewer;
@@ -31,12 +34,25 @@ const ToolbarController = inject('storeAppOptions', 'users', 'storeReview', 'sto
     const storeDocumentInfo = props.storeDocumentInfo;
     const docExt = storeDocumentInfo.dataDoc ? storeDocumentInfo.dataDoc.fileType : '';
     const docTitle = storeDocumentInfo.dataDoc ? storeDocumentInfo.dataDoc.title : '';
+    const scrollOffsetRef = useRef(0);
+
+    const getNavbarTotalHeight = useCallback(() => {
+      	const navbarBg = document.querySelector('.navbar-bg');
+      	const subnavbar = document.querySelector('.subnavbar');
+  
+      	if(navbarBg && subnavbar) {
+    		return navbarBg.clientHeight + subnavbar.clientHeight;
+      	}
+
+      	return 0;
+    }, []);
 
     useEffect(() => {
         Common.Gateway.on('init', loadConfig);
         Common.Notifications.on('toolbar:activatecontrols', activateControls);
         Common.Notifications.on('toolbar:deactivateeditcontrols', deactivateEditControls);
         Common.Notifications.on('goback', goBack);
+        Common.Notifications.on('close', onRequestClose);
 
         if (isDisconnected) {
             f7.popover.close();
@@ -48,17 +64,16 @@ const ToolbarController = inject('storeAppOptions', 'users', 'storeReview', 'sto
             Common.Notifications.off('toolbar:activatecontrols', activateControls);
             Common.Notifications.off('toolbar:deactivateeditcontrols', deactivateEditControls);
             Common.Notifications.off('goback', goBack);
+            Common.Notifications.off('close', onRequestClose);
         }
     }, []);
 
     useEffect(() => {
         const api = Common.EditorApi.get();
-        const navbarBgHeight = document.querySelector('.navbar-bg').clientHeight;
-        const subnavbarHeight = document.querySelector('.subnavbar').clientHeight;
-        const navbarHeight = navbarBgHeight + subnavbarHeight;
+        const navbarHeight = getNavbarTotalHeight();
 
         const onEngineCreated = api => {
-            if(isViewer) {
+            if(api && isViewer && navbarHeight) {
                 api.SetMobileTopOffset(navbarHeight, navbarHeight);
                 api.asc_registerCallback('onMobileScrollDelta', scrollHandler);
             }
@@ -73,7 +88,7 @@ const ToolbarController = inject('storeAppOptions', 'users', 'storeReview', 'sto
         return () => {
             const api = Common.EditorApi.get();
 
-            if (api && isViewer) {
+            if (api && isViewer && navbarHeight) {
                 api.SetMobileTopOffset(navbarHeight, navbarHeight);
                 api.asc_unregisterCallback('onMobileScrollDelta', scrollHandler);
             }
@@ -86,29 +101,32 @@ const ToolbarController = inject('storeAppOptions', 'users', 'storeReview', 'sto
 
     const scrollHandler = offset => {
         const api = Common.EditorApi.get();
-        const navbarBgHeight = document.querySelector('.navbar-bg').clientHeight;
-        const subnavbarHeight = document.querySelector('.subnavbar').clientHeight;
-        const navbarHeight = navbarBgHeight + subnavbarHeight;
+        const navbarHeight = getNavbarTotalHeight();
+        const isSearchbarEnabled = document.querySelector('.subnavbar .searchbar')?.classList.contains('searchbar-enabled');
 
-        if(offset > 0) {
-            f7.navbar.hide('.main-navbar');
-            props.closeOptions('fab');
-            api.SetMobileTopOffset(undefined, 0);
-        } else if(offset <= 0) {
-            f7.navbar.show('.main-navbar');
-            props.openOptions('fab');
-            api.SetMobileTopOffset(undefined, navbarHeight);
+        if(!isSearchbarEnabled && navbarHeight) {
+            if(offset > scrollOffsetRef.current) {
+                props.closeOptions('fab');
+                f7.navbar.hide('.main-navbar');
+                api.SetMobileTopOffset(undefined, 0);
+            } else if(offset <= scrollOffsetRef.current) {
+                props.openOptions('fab');
+                f7.navbar.show('.main-navbar');
+                api.SetMobileTopOffset(undefined, navbarHeight);
+            }
+
+            scrollOffsetRef.current = offset;
         }
     }
 
     // Back button
     const [isShowBack, setShowBack] = useState(appOptions.canBackToFolder);
     const loadConfig = (data) => {
-        if (data && data.config && data.config.canBackToFolder !== false &&
-            data.config.customization && data.config.customization.goback &&
-            (data.config.customization.goback.url || data.config.customization.goback.requestClose && data.config.canRequestClose))
-        {
-            setShowBack(true);
+        if (data && data.config && data.config?.canBackToFolder !== false && data.config?.customization && data.config?.customization.goback) {
+            const canback = data.config.customization.close === undefined ?
+                data.config.customization.goback.url || data.config.customization.goback.requestClose && data.config.canRequestClose :
+                data.config.customization.goback.url && !data.config.customization.goback.requestClose;
+            canback && setShowBack(true);
         }
     };
 
@@ -326,37 +344,79 @@ const ToolbarController = inject('storeAppOptions', 'users', 'storeReview', 'sto
         Common.Gateway.requestHistoryClose();
     }
 
+    const moveNextField = () => {
+        const api = Common.EditorApi.get();
+        api.asc_MoveToFillingForm(true);
+    }
+
+    const movePrevField = () => {
+        const api = Common.EditorApi.get();
+        api.asc_MoveToFillingForm(false);
+    }
+
+    const saveForm = () => {
+        const isSubmitForm = canFillForms && canSubmitForms;
+        const isSavePdf = appOptions.canDownload && canFillForms && !canSubmitForms;
+
+        if(isSubmitForm) submitForm();
+        if(isSavePdf) saveAsPdf();
+    }
+
+    const saveAsPdf = () => {
+        const api = Common.EditorApi.get();
+
+        if (appOptions.isOffline) {
+            api.asc_DownloadAs(new Asc.asc_CDownloadOptions(Asc.c_oAscFileType.PDF));
+        } else {
+            const isFromBtnDownload = appOptions.canRequestSaveAs || !!appOptions.saveAsUrl;
+            let options = new Asc.asc_CDownloadOptions(Asc.c_oAscFileType.PDF, isFromBtnDownload);
+            options.asc_setIsSaveAs(isFromBtnDownload);
+            api.asc_DownloadAs(options);
+        }
+    }
+
+    const submitForm = () => {
+        const api = Common.EditorApi.get();
+        api.asc_SendForm();
+    }
+
     return (
-        <ToolbarView openOptions={props.openOptions}
-                     closeOptions={props.closeOptions}
-                     isEdit={isEdit}
-                     docTitle={docTitle}
-                     docExt={docExt}
-                     isShowBack={isShowBack}
-                     isCanUndo={isCanUndo}
-                     isCanRedo={isCanRedo}
-                     onUndo={onUndo}
-                     onRedo={onRedo}
-                     isObjectLocked={objectLocked}
-                     stateDisplayMode={stateDisplayMode}
-                     disabledControls={disabledControls}
-                     disabledEditControls={disabledEditControls}
-                     disabledSettings={disabledSettings}
-                     displayCollaboration={displayCollaboration}
-                     readerMode={readerMode}
-                     showEditDocument={showEditDocument}
-                     onEditDocument={onEditDocument}
-                     isDisconnected={isDisconnected}
-                     isViewer={isViewer}
-                     turnOnViewerMode={turnOnViewerMode}
-                     isMobileView={isMobileView}
-                     changeMobileView={changeMobileView}
-                     changeTitleHandler={changeTitleHandler}
-                     isVersionHistoryMode={isVersionHistoryMode}
-                     closeHistory={closeHistory}
-                     isOpenModal={props.isOpenModal}
+        <ToolbarView 
+            openOptions={props.openOptions}
+            closeOptions={props.closeOptions}
+            isEdit={appOptions.isEdit}
+            docTitle={docTitle}
+            docExt={docExt}
+            isShowBack={isShowBack}
+            isCanUndo={isCanUndo}
+            isCanRedo={isCanRedo}
+            onUndo={onUndo}
+            onRedo={onRedo}
+            isObjectLocked={objectLocked}
+            stateDisplayMode={stateDisplayMode}
+            disabledControls={disabledControls}
+            disabledEditControls={disabledEditControls}
+            disabledSettings={disabledSettings}
+            displayCollaboration={displayCollaboration}
+            readerMode={readerMode}
+            showEditDocument={showEditDocument}
+            onEditDocument={onEditDocument}
+            isDisconnected={isDisconnected}
+            isViewer={isViewer}
+            turnOnViewerMode={turnOnViewerMode}
+            isMobileView={isMobileView}
+            changeMobileView={changeMobileView}
+            changeTitleHandler={changeTitleHandler}
+            isVersionHistoryMode={isVersionHistoryMode}
+            closeHistory={closeHistory}
+            isOpenModal={props.isOpenModal}
+            moveNextField={moveNextField}
+            movePrevField={movePrevField}
+            saveForm={saveForm}
+            isForm={isForm}
+            canFillForms={canFillForms}
         />
     )
 }));
 
-export {ToolbarController as Toolbar};
+export default ToolbarController;

@@ -56,6 +56,12 @@
       "textWarningRestoreVersion": "Current file will be saved in version history.",
       "titleWarningRestoreVersion": "Restore this version?",
       "txtErrorLoadHistory": "Loading history failed"
+    },
+    "Themes": {
+      "dark": "Dark",
+      "light": "Light",
+      "system": "Same as system",
+      "textTheme": "Theme"
     }
   },
   "ContextMenu": {
@@ -115,7 +121,31 @@
         "Table": "Cədvəl",
         "X Axis": "X Oxu XAS",
         "Y Axis": "Y Oxu",
-        "Your text here": "Mətniniz buradadır"
+        "Your text here": "Mətniniz buradadır",
+        "Aspect": "Aspect",
+        "Blue": "Blue",
+        "Blue Green": "Blue Green",
+        "Blue II": "Blue II",
+        "Blue Warm": "Blue Warm",
+        "Grayscale": "Grayscale",
+        "Green": "Green",
+        "Green Yellow": "Green Yellow",
+        "Marquee": "Marquee",
+        "Median": "Median",
+        "Office": "Office",
+        "Office 2007 - 2010": "Office 2007 - 2010",
+        "Office 2013 - 2022": "Office 2013 - 2022",
+        "Orange": "Orange",
+        "Orange Red": "Orange Red",
+        "Paper": "Paper",
+        "Red": "Red",
+        "Red Orange": "Red Orange",
+        "Red Violet": "Red Violet",
+        "Slipstream": "Slipstream",
+        "Violet": "Violet",
+        "Violet II": "Violet II",
+        "Yellow": "Yellow",
+        "Yellow Orange": "Yellow Orange"
       },
       "textAnonymous": "Anonim",
       "textBuyNow": "Veb sayta daxil olun",
@@ -241,7 +271,9 @@
     "dlgLeaveTitleText": "Proqramdan çıxdınız",
     "leaveButtonText": "Bu səhifədən çıxın",
     "stayButtonText": "Bu Səhifədə Qalın",
-    "textCloseHistory": "Tarixçəni bağlayın"
+    "textCloseHistory": "Tarixçəni bağlayın",
+    "textEnterNewFileName": "Enter a new file name",
+    "textRenameFile": "Rename File"
   },
   "View": {
     "Add": {
@@ -442,9 +474,14 @@
       "textZoomRotate": "Miqyası dəyiş və Fırlat",
       "textDeleteImage": "Delete Image",
       "textDeleteLink": "Delete Link",
+      "textHorizontalText": "Horizontal Text",
+      "textInvalidName": "The file name cannot contain any of the following characters: ",
       "textMorph": "Morph",
       "textMorphLetters": "Letters",
-      "textMorphObjects": "Objects"
+      "textMorphObjects": "Objects",
+      "textRotateTextDown": "Rotate Text Down",
+      "textRotateTextUp": "Rotate Text Up",
+      "textTextOrientation": "Text Orientation"
     },
     "Settings": {
       "mniSlideStandard": "Standart (4:3)",
@@ -506,31 +543,16 @@
       "textUploaded": "Yükləndi",
       "textVersion": "Versiya",
       "textVersionHistory": "Versiya tarixçəsi",
-      "txtScheme1": "Office",
-      "txtScheme10": "Orta Qiymət",
-      "txtScheme11": "Metro",
-      "txtScheme12": "Modul",
-      "txtScheme13": "Zəngin",
-      "txtScheme14": "Taxça",
-      "txtScheme15": "Mənbə",
-      "txtScheme16": "Kağız",
-      "txtScheme17": "Gün dönümü",
-      "txtScheme18": "Texnika",
-      "txtScheme19": "Yürüş",
-      "txtScheme2": "Boz rəng çalarları",
-      "txtScheme20": "Şəhər",
-      "txtScheme21": "Enerji",
-      "txtScheme22": "Yeni Office",
-      "txtScheme3": "Apex",
-      "txtScheme4": "Aspekt",
-      "txtScheme5": "Mülki",
-      "txtScheme6": "Konkurs",
-      "txtScheme7": "Bərabər",
-      "txtScheme8": "Axın",
-      "txtScheme9": "Emalatxana",
+      "textClose": "Close",
+      "textDark": "Dark",
       "textDarkTheme": "Dark Theme",
+      "textExplanationChangeDirection": "Application will be restarted for RTL interface activation",
+      "textLight": "Light",
       "textRestartApplication": "Please restart the application for the changes to take effect",
-      "textRTL": "RTL"
+      "textRTL": "RTL",
+      "textRtlInterface": "RTL Interface",
+      "textSameAsSystem": "Same As System",
+      "textTheme": "Theme"
     }
   }
 }

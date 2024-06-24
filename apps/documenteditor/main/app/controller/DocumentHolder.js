@@ -265,7 +265,7 @@ define([
             var me = this,
                 view = me.documentHolder;
 
-            if (type=='view') {
+            if (type==='view') {
                 view.menuViewCopy.on('click', _.bind(me.onCutCopyPaste, me));
                 view.menuViewPaste.on('click', _.bind(me.onCutCopyPaste, me));
                 view.menuViewCut.on('click', _.bind(me.onCutCopyPaste, me));
@@ -277,8 +277,16 @@ define([
                 view.menuSignatureRemove.on('click', _.bind(me.onSignatureClick, me));
                 view.menuViewPrint.on('click', _.bind(me.onPrintSelection, me));
                 return;
-            } else if (type=='pdf') {
+            } else if (type==='pdf') {
                 view.menuPDFViewCopy.on('click', _.bind(me.onCutCopyPaste, me));
+                return;
+            } else if (type==='forms') {
+                view.menuPDFFormsUndo.on('click', _.bind(me.onUndo, me));
+                view.menuPDFFormsRedo.on('click', _.bind(me.onRedo, me));
+                view.menuPDFFormsClear.on('click', _.bind(me.onClear, me));
+                view.menuPDFFormsCut.on('click', _.bind(me.onCutCopyPaste, me));
+                view.menuPDFFormsCopy.on('click', _.bind(me.onCutCopyPaste, me));
+                view.menuPDFFormsPaste.on('click', _.bind(me.onCutCopyPaste, me));
                 return;
             }
 
@@ -489,7 +497,7 @@ define([
                 }, 10);
 
                 me.documentHolder.currentMenu = menu;
-                me.api.onPluginContextMenuShow && me.api.onPluginContextMenuShow();
+                me.api.onPluginContextMenuShow && me.api.onPluginContextMenuShow(event);
             }
         },
 
@@ -605,12 +613,50 @@ define([
             return (!noobject) ? {menu_to_show: menu_to_show, menu_props: menu_props} : null;
         },
 
+        fillFormsMenuProps: function(selectedElements) {
+            if (!selectedElements || !_.isArray(selectedElements)) return;
+
+            var documentHolder = this.documentHolder;
+            if (!documentHolder.formsPDFMenu)
+                documentHolder.createDelayedElementsPDFForms();
+            var menu_props = {},
+                menu_to_show = documentHolder.formsPDFMenu,
+                noobject = true;
+            for (var i = 0; i <selectedElements.length; i++) {
+                var elType = selectedElements[i].get_ObjectType();
+                var elValue = selectedElements[i].get_ObjectValue();
+                if (Asc.c_oAscTypeSelectElement.Image == elType) {
+                    //image
+                    menu_props.imgProps = {};
+                    menu_props.imgProps.value = elValue;
+                    menu_props.imgProps.locked = (elValue) ? elValue.get_Locked() : false;
+
+                    var control_props = this.api.asc_IsContentControl() ? this.api.asc_GetContentControlProperties() : null,
+                        lock_type = (control_props) ? control_props.get_Lock() : Asc.c_oAscSdtLockType.Unlocked;
+                    menu_props.imgProps.content_locked = lock_type==Asc.c_oAscSdtLockType.SdtContentLocked || lock_type==Asc.c_oAscSdtLockType.ContentLocked;
+
+                    noobject = false;
+                } else if (Asc.c_oAscTypeSelectElement.Paragraph == elType) {
+                    menu_props.paraProps = {};
+                    menu_props.paraProps.value = elValue;
+                    menu_props.paraProps.locked = (elValue) ? elValue.get_Locked() : false;
+                    noobject = false;
+                } else if (Asc.c_oAscTypeSelectElement.Header == elType) {
+                    menu_props.headerProps = {};
+                    menu_props.headerProps.locked = (elValue) ? elValue.get_Locked() : false;
+                }
+            }
+            return (!noobject) ? {menu_to_show: menu_to_show, menu_props: menu_props} : null;
+        },
+
         showObjectMenu: function(event, docElement, eOpts){
             var me = this;
             if (me.api){
-                var docProtection = me.documentHolder._docProtection;
-                var obj = (me.mode.isEdit && !(me._isDisabled || docProtection.isReadOnly || docProtection.isFormsOnly || docProtection.isCommentsOnly)) ?
-                            me.fillMenuProps(me.api.getSelectedElements()) : me.fillViewMenuProps(me.api.getSelectedElements());
+                var docProtection = me.documentHolder._docProtection,
+                    disableEditing = me._isDisabled || docProtection.isReadOnly || docProtection.isFormsOnly || docProtection.isCommentsOnly,
+                    obj = me.mode.isEdit && !disableEditing ? me.fillMenuProps(me.api.getSelectedElements()) :
+                          me.mode.isPDFForm && me.mode.canFillForms && me.mode.isRestrictedEdit && !disableEditing ? me.fillFormsMenuProps(me.api.getSelectedElements()) :
+                            me.fillViewMenuProps(me.api.getSelectedElements());
                 if (obj) me.showPopupMenu(obj.menu_to_show, obj.menu_props, event, docElement, eOpts);
             }
         },
@@ -637,9 +683,11 @@ define([
             var me = this,
                 currentMenu = me.documentHolder.currentMenu;
             if (currentMenu && currentMenu.isVisible() && currentMenu !== me.documentHolder.hdrMenu){
-                var docProtection = me.documentHolder._docProtection;
-                var obj = (me.mode.isEdit && !(me._isDisabled || docProtection.isReadOnly || docProtection.isFormsOnly || docProtection.isCommentsOnly)) ?
-                            me.fillMenuProps(selectedElements) : me.fillViewMenuProps(selectedElements);
+                var docProtection = me.documentHolder._docProtection,
+                    disableEditing = me._isDisabled || docProtection.isReadOnly || docProtection.isFormsOnly || docProtection.isCommentsOnly,
+                    obj = me.mode.isEdit && !disableEditing ? me.fillMenuProps(selectedElements) :
+                          me.mode.isPDFForm && me.mode.canFillForms && me.mode.isRestrictedEdit && !disableEditing ? me.fillFormsMenuProps(selectedElements) :
+                          me.fillViewMenuProps(selectedElements);
                 if (obj) {
                     if (obj.menu_to_show===currentMenu) {
                         currentMenu.options.initMenu(obj.menu_props);
@@ -679,8 +727,10 @@ define([
                 if (event.ctrlKey && !event.altKey) {
                     if (delta < 0) {
                         me.api.zoomOut();
+                        me._handleZoomWheel = true;
                     } else if (delta > 0) {
                         me.api.zoomIn();
+                        me._handleZoomWheel = true;
                     }
 
                     event.preventDefault();
@@ -724,8 +774,6 @@ define([
 
                 if (key == Common.UI.Keys.ESC) {
                     Common.UI.Menu.Manager.hideAll();
-                    if (!Common.UI.HintManager.isHintVisible())
-                        Common.NotificationCenter.trigger('leftmenu:change', 'hide');
                 }
             }
         },
@@ -857,20 +905,27 @@ define([
 
         onHyperlinkClick: function(url) {
             //TODO: check url
-
-             if (url) {
+            if (url) {
                 var type = this.api.asc_getUrlType(url);
                 if (type===AscCommon.c_oAscUrlType.Http || type===AscCommon.c_oAscUrlType.Email)
-                window.parent.postMessage(url,"*")
-                else
-                    Common.UI.warning({
-                        msg: this.documentHolder.txtWarnUrl,
-                        buttons: ['yes', 'no'],
-                        primary: 'yes',
-                        callback: function(btn) {
-                            (btn == 'yes') && window.open(url);
-                        }
-                    });
+                    window.parent.postMessage(url,"*")
+                else {
+                    var me = this;
+                    setTimeout(function() {
+                        Common.UI.warning({
+                            msg: me.documentHolder.txtWarnUrl,
+                            buttons: ['yes', 'no'],
+                            primary: 'yes',
+                            callback: function(btn) {
+                                try {
+                                    (btn == 'yes') && window.open(url);
+                                } catch (err) {
+                                    err && console.log(err.stack);
+                                }
+                            }
+                        });
+                    }, 1);
+                }
             }
         },
 
@@ -879,10 +934,9 @@ define([
             var win, props, text;
             var docProtection = me.documentHolder._docProtection;
             if (me.api && me.mode.isEdit && !(me._isDisabled || docProtection.isReadOnly || docProtection.isFormsOnly || docProtection.isCommentsOnly) && !me.getApplication().getController('LeftMenu').leftMenu.menuFile.isVisible()){
-                var handlerDlg = function(dlg, result,props) {
-
+                var handlerDlg = function(dlg, result, props) {
                     if (result == 'ok') {
-                         props = props;
+                        props = props;
                         (text!==false)
                             ? me.api.add_Hyperlink(props)
                             : me.api.change_Hyperlink(props);
@@ -896,6 +950,7 @@ define([
                 if (text !== false) {
                     win = new DE.Views.HyperlinkSettingsDialog({
                         api: me.api,
+                        appOptions: me.mode,
                         handler: handlerDlg
                     });
 
@@ -915,6 +970,7 @@ define([
                     if (props) {
                         win = new DE.Views.HyperlinkSettingsDialog({
                             api: me.api,
+                            appOptions: me.mode,
                             handler: handlerDlg
                         });
                         win.show();
@@ -1304,10 +1360,11 @@ define([
         },
 
         onKeyUp: function (e) {
-            if (e.keyCode == Common.UI.Keys.CTRL && this._needShowSpecPasteMenu && !this.btnSpecialPaste.menu.isVisible() && /area_id/.test(e.target.id)) {
+            if (e.keyCode == Common.UI.Keys.CTRL && this._needShowSpecPasteMenu && !this._handleZoomWheel && !this.btnSpecialPaste.menu.isVisible() && /area_id/.test(e.target.id)) {
                 $('button', this.btnSpecialPaste.cmpEl).click();
                 e.preventDefault();
             }
+            this._handleZoomWheel = false;
             this._needShowSpecPasteMenu = false;
         },
 
@@ -1572,7 +1629,7 @@ define([
                         value       : '',
                         template    : _.template([
                             '<a id="<%= id %>" tabindex="-1" type="menuitem" style="<% if (options.value=="") { %> opacity: 0.6 <% } %>">',
-                            '<%= caption %>',
+                            '<%= Common.Utils.String.htmlEncode(caption) %>',
                             '</a>'
                         ].join(''))
                     }));
@@ -1755,8 +1812,8 @@ define([
             if (me.api){
                 win = new DE.Views.HyperlinkSettingsDialog({
                     api: me.api,
-                    handler: function(dlg, result,props) {
-                          props = props;
+                    appOptions: me.mode,
+                    handler: function(dlg, result, props) {
                         if (result == 'ok') {
                             me.api.add_Hyperlink(props);
                         }
@@ -1772,15 +1829,14 @@ define([
         },
 
         editHyperlink: function(item, e, eOpt){
-            
             var win, me = this;
             if (me.api){
                 win = new DE.Views.HyperlinkSettingsDialog({
                     api: me.api,
-                    handler: function(dlg, result,props) {
+                    appOptions: me.mode,
+                    handler: function(dlg, result, props) {
                         if (result == 'ok') {
-                       
-                            me.api.change_Hyperlink(props);//While click on edit hyperlink
+                            me.api.change_Hyperlink(props); //While click on edit hyperlink
                         }
                         me.editComplete();
                     }
@@ -1938,7 +1994,20 @@ define([
         },
 
         onUndo: function () {
-            this.api.Undo();
+            this.api && this.api.Undo();
+        },
+
+        onRedo: function () {
+            this.api && this.api.Redo();
+        },
+
+        onClear: function () {
+            if (this.api) {
+                var props = this.api.asc_IsContentControl() ? this.api.asc_GetContentControlProperties() : null;
+                if (props) {
+                    this.api.asc_ClearContentControl(props.get_InternalId());
+                }
+            }
         },
 
         onAcceptRejectChange: function(item, e) {

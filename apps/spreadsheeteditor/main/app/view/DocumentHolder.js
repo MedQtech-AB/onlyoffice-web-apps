@@ -77,6 +77,11 @@ define([
             return this;
         },
 
+        setMode: function(m) {
+            this.mode = m;
+            return this;
+        },
+
         focus: function() {
             var me = this;
             _.defer(function(){
@@ -103,9 +108,13 @@ define([
             });
 
             me.menuViewAddComment = new Common.UI.MenuItem({
-                iconCls: 'menu__icon btn-menu-comments',
+                iconCls: 'menu__icon btn-add-comment',
                 id: 'id-context-menu-item-view-add-comment',
                 caption: me.txtAddComment
+            });
+
+            me.pmiViewGetRangeList = new Common.UI.MenuItem({
+                caption     : me.txtGetLink
             });
 
             me.menuSignatureViewSign   = new Common.UI.MenuItem({caption: this.strSign,      value: 0 });
@@ -113,6 +122,7 @@ define([
             me.menuSignatureViewSetup  = new Common.UI.MenuItem({caption: this.strSetup,     value: 2 });
             me.menuSignatureRemove     = new Common.UI.MenuItem({caption: this.strDelete,    value: 3 });
             me.menuViewSignSeparator   = new Common.UI.MenuItem({caption: '--' });
+            me.menuViewCommentSeparator   = new Common.UI.MenuItem({caption: '--' });
 
             this.viewModeMenu = new Common.UI.Menu({
                 cls: 'shifted-right',
@@ -125,7 +135,9 @@ define([
                     me.menuSignatureViewSetup,
                     me.menuSignatureRemove,
                     me.menuViewSignSeparator,
-                    me.menuViewAddComment
+                    me.menuViewAddComment,
+                    me.menuViewCommentSeparator,
+                    me.pmiViewGetRangeList
                 ]
             }).on('hide:after', function(menu, e, isFromInputControl) {
                 me.clearCustomItems(menu);
@@ -340,6 +352,41 @@ define([
 
             me.mnuRefreshPivot = new Common.UI.MenuItem({
                 caption     : me.txtRefresh
+            });
+
+            me.mnuExpandCollapsePivot = new Common.UI.MenuItem({
+                caption     : this.txtExpandCollapse,
+                menu        : new Common.UI.Menu({
+                    cls: 'shifted-right',
+                    menuAlign   : 'tl-tr',
+                    items: [
+                        {
+                            caption : this.txtExpand,
+                            value   : {
+                                visible: true,
+                                isAll: false
+                            }
+                        },{
+                            caption : this.txtCollapse,
+                            value   : {
+                                visible: false,
+                                isAll: false
+                            }
+                        },{
+                            caption : this.txtExpandEntire,
+                            value   : {
+                                visible: true,
+                                isAll: true
+                            }
+                        },{
+                            caption : this.txtCollapseEntire,
+                            value   : {
+                                visible: false,
+                                isAll: true
+                            }
+                        }
+                    ]
+                })
             });
 
             me.mnuGroupPivot = new Common.UI.MenuItem({
@@ -562,6 +609,7 @@ define([
 
             me.mnuPivotRefreshSeparator = new Common.UI.MenuItem({caption: '--'});
             me.mnuPivotSubtotalSeparator = new Common.UI.MenuItem({caption: '--'});
+            me.mnuPivotExpandCollapseSeparator = new Common.UI.MenuItem({caption: '--'});
             me.mnuPivotGroupSeparator = new Common.UI.MenuItem({caption: '--'});
             me.mnuPivotDeleteSeparator = new Common.UI.MenuItem({caption: '--'});
             me.mnuPivotValueSeparator = new Common.UI.MenuItem({caption: '--'});
@@ -634,7 +682,7 @@ define([
             });
 
             me.pmiAddComment = new Common.UI.MenuItem({
-                iconCls: 'menu__icon btn-menu-comments',
+                iconCls: 'menu__icon btn-add-comment',
                 id          : 'id-context-menu-item-add-comment',
                 caption     : me.txtAddComment
             });
@@ -652,6 +700,10 @@ define([
             });
 
             me.pmiFreezeSeparator =  new Common.UI.MenuItem({
+                caption     : '--'
+            });
+
+            me.pmiCellSeparator =  new Common.UI.MenuItem({
                 caption     : '--'
             });
 
@@ -778,6 +830,10 @@ define([
                 })
             });
 
+            me.pmiCellFormat = new Common.UI.MenuItem({
+                caption     : me.txtCellFormat
+            });
+
             me.pmiCondFormat = new Common.UI.MenuItem({
                 caption     : me.txtCondFormat
             });
@@ -804,7 +860,7 @@ define([
                     me.pmiDeleteCells,
                     me.pmiDeleteTable,
                     me.pmiClear,
-                    {caption: '--'},
+                    me.pmiCellSeparator,
                     me.pmiSparklines,
                     me.pmiSortCells,
                     me.pmiFilterCells,
@@ -816,6 +872,8 @@ define([
                     me.mnuPivotFilterSeparator,
                     me.mnuSubtotalField,
                     me.mnuPivotSubtotalSeparator,
+                    me.mnuExpandCollapsePivot,
+                    me.mnuPivotExpandCollapseSeparator,
                     me.mnuGroupPivot,
                     me.mnuUnGroupPivot,
                     me.mnuPivotGroupSeparator,
@@ -831,6 +889,7 @@ define([
                     me.pmiAddCommentSeparator,
                     me.pmiAddComment,
                     me.pmiCellMenuSeparator,
+                    me.pmiCellFormat,
                     me.pmiNumFormat,
                     me.pmiCondFormat,
                     me.pmiEntriesList,
@@ -1097,6 +1156,7 @@ define([
             var menuSaveAsPictureSeparator = new Common.UI.MenuItem({ caption: '--'});
 
             me.menuImgEditPoints = new Common.UI.MenuItem({
+                iconCls: 'menu__icon btn-edit-points',
                 caption: me.textEditPoints
             });
 
@@ -1373,13 +1433,15 @@ define([
                 value       : 'paste'
             });
 
-            this.copyPasteMenu = new Common.UI.Menu({
+            me.copyPasteMenu = new Common.UI.Menu({
                 cls: 'shifted-right',
                 items: [
                     me.pmiCommonCut,
                     me.pmiCommonCopy,
                     me.pmiCommonPaste
                 ]
+            }).on('hide:after', function(menu, e, isFromInputControl) {
+                me.clearCustomItems(menu);
             });
 
             this.entriesMenu = new Common.UI.Menu({
@@ -1421,6 +1483,26 @@ define([
                     {caption: this.textStdDev, value: Asc.ETotalsRowFunction.totalrowfunctionStdDev, checkable: true },
                     {caption: this.textVar, value: Asc.ETotalsRowFunction.totalrowfunctionVar, checkable: true },
                     {caption: this.textMore, value: Asc.ETotalsRowFunction.totalrowfunctionCustom, checkable: true }
+                ]
+            });
+
+            me.fillMenu = new Common.UI.Menu({
+                restoreHeightAndTop: true,
+                items: [
+                    {caption: this.textCopyCells, value: Asc.c_oAscFillType.copyCells},
+                    {caption: this.textFillSeries, value: Asc.c_oAscFillType.fillSeries},
+                    {caption: this.textFillFormatOnly, value: Asc.c_oAscFillType.fillFormattingOnly},
+                    {caption: this.textFillWithoutFormat, value: Asc.c_oAscFillType.fillWithoutFormatting},
+                    {caption: '--'},
+                    {caption: this.textFillDays, value: Asc.c_oAscFillType.fillDays},
+                    {caption: this.textFillWeekdays, value: Asc.c_oAscFillType.fillWeekdays},
+                    {caption: this.textFillMonths, value: Asc.c_oAscFillType.fillMonths},
+                    {caption: this.textFillYears, value: Asc.c_oAscFillType.fillYears},
+                    {caption: '--'},
+                    {caption: this.textLinearTrend, value: Asc.c_oAscFillType.linearTrend},
+                    {caption: this.textGrowthTrend, value: Asc.c_oAscFillType.growthTrend},
+                    {caption: this.textFlashFill, value: Asc.c_oAscFillType.flashFill},
+                    {caption: this.textSeries, value: Asc.c_oAscFillType.series}
                 ]
             });
 
@@ -1537,6 +1619,7 @@ define([
                         value: item.id,
                         guid: guid,
                         menu: item.items ? getMenu(item.items, guid) : false,
+                        iconImg: me.parseIcons(item.icons),
                         disabled: !!item.disabled
                     });
                 });
@@ -1554,7 +1637,6 @@ define([
                                 isCustomItem: true,
                                 guid: plugin.guid
                             });
-                            return;
                         }
 
                         if (!item.text) return;
@@ -1580,6 +1662,7 @@ define([
                                 value: item.id,
                                 guid: plugin.guid,
                                 menu: item.items && item.items.length>=0 ? getMenu(item.items, plugin.guid) : false,
+                                iconImg: me.parseIcons(item.icons),
                                 disabled: !!item.disabled
                             }).on('click', function(item, e) {
                                 !me._preventCustomClick && me.api && me.api.onPluginContextMenuItemClick && me.api.onPluginContextMenuItemClick(item.options.guid, item.value);
@@ -1607,6 +1690,14 @@ define([
                 }
             }
             this._hasCustomItems = false;
+        },
+
+        parseIcons: function(icons) {
+            var plugins = SSE.getController('Common.Controllers.Plugins').getView('Common.Views.Plugins');
+            if (icons && icons.length && plugins && plugins.parseIcons) {
+                icons = plugins.parseIcons(icons);
+                return icons ? icons['normal'] : undefined;
+            }
         },
 
         txtSort:                'Sort',
@@ -1643,6 +1734,11 @@ define([
         txtArrange:             'Arrange',
         txtAddComment:          'Add Comment',
         txtEditComment:         'Edit Comment',
+        txtExpandCollapse:      'Expand/Collapse',
+        txtExpand:              'Expand',
+        txtCollapse:            'Collapse',
+        txtExpandEntire:        'Expand Entire Field',
+        txtCollapseEntire:      'Collapse Entire Field',
         txtUngroup:             'Ungroup',
         txtGroup:               'Group',
         topCellText:            'Align Top',
@@ -1816,7 +1912,20 @@ define([
         txtSortOption: 'More sort options',
         txtShowDetails: 'Show details',
         txtInsImage: 'Insert image from File',
-        txtInsImageUrl: 'Insert image from URL'
+        txtInsImageUrl: 'Insert image from URL',
+        textCopyCells: 'Copy cells',
+        textFillSeries: 'Fill series',
+        textFillFormatOnly: 'Fill formatting only',
+        textFillWithoutFormat: 'Fill without formatting',
+        textFillDays: 'Fill days',
+        textFillWeekdays: 'Fill weekdays',
+        textFillMonths: 'Fill months',
+        textFillYears: 'Fill years',
+        textLinearTrend: 'Linear trend',
+        textGrowthTrend: 'Growth trend',
+        textFlashFill: 'Flash fill',
+        textSeries: 'Series',
+        txtCellFormat: 'Format cells'
 
     }, SSE.Views.DocumentHolder || {}));
 });
