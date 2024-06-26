@@ -375,22 +375,28 @@ define([
 
         onEndDemonstration: function( ) {
             this.hide();
-            this.fullScreenCancel();
+            Common.Utils.cancelFullscreen();
         },
 
         onDemonstrationStatus: function(status) {
-            var iconEl = $('.icon', this.btnPlay.cmpEl);
-            iconEl.toggleClass('btn-preivew-pause', status=="play");
-            iconEl.toggleClass('btn-preivew-play', status!=="play");
+            (status=="play") ? this.btnPlay.changeIcon({curr: 'btn-play', next: 'btn-preview-pause'}) :
+                               this.btnPlay.changeIcon({curr: 'btn-preview-pause', next: 'btn-play'});
             this.btnPlay.updateHint((status=="play") ? this.txtPause : this.txtPlay);
         },
 
         toggleFullScreen: function() {
             if (!document.fullscreenElement && !document.msFullscreenElement && 
-                !document.mozFullScreenElement && !document.webkitFullscreenElement) {
-                this.fullScreen(document.documentElement);
+                !document.mozFullScreenElement && !document.webkitFullscreenElement)
+            {
+                if (this.mode.isDesktopApp || Common.Utils.isIE11) return;
+                const elem = document.getElementById('pe-preview');
+                if ( elem ) {
+                    Common.Utils.startFullscreenForElement(elem);
+                    this.previewControls.css('display', 'none');
+                    this.$el.css('cursor', 'none');
+                }
             } else {
-                this.fullScreenCancel();
+                Common.Utils.cancelFullscreen();
             }
         },
 

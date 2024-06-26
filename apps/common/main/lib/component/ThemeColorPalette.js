@@ -103,6 +103,7 @@ define([
 
         colorRe: /(?:^|\s)color-(.{6})(?:\s|$)/,
         selectedCls: 'selected',
+        cls        : '',
 
         initialize : function(options) {
             Common.UI.BaseView.prototype.initialize.call(this, options);
@@ -128,6 +129,7 @@ define([
                 me.moveKeys = [Common.UI.Keys.UP, Common.UI.Keys.DOWN, Common.UI.Keys.LEFT, Common.UI.Keys.RIGHT];
 
             el.addClass('theme-colorpalette');
+            me.options.cls && el.addClass(me.options.cls);
             this.render();
 
             if (this.options.updateColorsArr)
@@ -262,6 +264,10 @@ define([
                         color = target.attr('color');
                         me.trigger('select', me, color);
                         me.value = color.toUpperCase();
+                        if (me.colorHints) {
+                            var tip = target.data('bs.tooltip');
+                            if (tip) (tip.tip()).remove();
+                        }
                     }
                 } else {
                     if (e.suppressEvent) {
@@ -286,6 +292,10 @@ define([
                         me.value = color.toUpperCase();
                         me.trigger('select', me, {color: color, effectId: effectId});
                         me.lastSelectedIdx = parseInt(target.attr('idx'));
+                        if (me.colorHints) {
+                            var tip = target.data('bs.tooltip');
+                            if (tip) (tip.tip()).remove();
+                        }
                     }
                 } else {
                     if (/#?[a-fA-F0-9]{6}/.test(color)) {
@@ -294,6 +304,10 @@ define([
                             me.value = color;
                             me.trigger('select', me, color);
                             me.lastSelectedIdx = parseInt(target.attr('idx'));
+                            if (me.colorHints) {
+                                var tip = target.data('bs.tooltip');
+                                if (tip) (tip.tip()).remove();
+                            }
                         }
                     }
                 }

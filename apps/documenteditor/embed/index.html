@@ -196,19 +196,25 @@
 
            var params = getUrlParams(),
                lang = (params["lang"] || 'en').split(/[\-\_]/)[0],
-               logo = params["headerlogo"] ? encodeUrlParam(params["headerlogo"]) : null;
+               hideLogo = params["headerlogo"]==='',
+               logo = params["headerlogo"] ? encodeUrlParam(params["headerlogo"]) : null,
+               isForm = params["isForm"];
 
            window.frameEditorId = params["frameEditorId"];
            window.parentOrigin = params["parentOrigin"];
 
            var elem = document.querySelector('.loading-logo');
-           if (elem && logo) {
-               elem.style.backgroundImage= 'none';
-               elem.style.width = 'auto';
-               elem.style.height = 'auto';
-               var img = document.querySelector('.loading-logo img');
-               img && img.setAttribute('src', logo);
-               img.style.opacity = 1;
+           if (elem) {
+               if (hideLogo) {
+                   elem.style.display = 'none';
+               } else if (logo) {
+                   elem.style.backgroundImage= 'none';
+                   elem.style.width = 'auto';
+                   elem.style.height = 'auto';
+                   var img = document.querySelector('.loading-logo img');
+                   img && img.setAttribute('src', logo);
+                   img.style.opacity = 1;
+               }
            }
         </script>
 
@@ -237,6 +243,7 @@
               <div id="box-tools" class="dropdown">
                   <button class="control-btn svg-icon more-vertical"></button>
               </div>
+              <button id="id-btn-close-editor" class="control-btn svg-icon search-close hidden"></button>
           </div>
       </div>
 
@@ -244,6 +251,9 @@
           <div class="modal-dialog">
               <div class="modal-content">
                   <div class="modal-header">
+                      <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                      </button>
                       <h4 id="id-critical-error-title"></h4>
                   </div>
                   <div class="modal-body">
@@ -293,13 +303,30 @@
       <script type="text/javascript" src="js/SearchBar.js"></script>
       <script type="text/javascript" src="js/ApplicationView.js"></script>
       <script type="text/javascript" src="js/ApplicationController.js"></script>
-      <script type="text/javascript" src="js/application.js"></script>
+      <script type="text/javascript" src="../../common/checkExtendedPDF.js"></script>
+      <script>
+          function startApp() {
+              var script = document.createElement("script");
+              script.src = "js/application.js";
+              document.body.appendChild(script);
+          }
+          if (isForm===undefined) {
+              listenApiMsg(function (isform) {
+                  window.isPDFForm = !!isform;
+                  startApp();
+              });
+          } else {
+              window.isPDFForm = isForm==='true';
+              startApp();
+          }
+      </script>
       <script type="text/javascript">
           var isBrowserSupported = function() {
               return  ($.browser.msie     && parseFloat($.browser.version) > 9)     ||
                       ($.browser.chrome   && parseFloat($.browser.version) > 7)     ||
                       ($.browser.safari   && parseFloat($.browser.version) > 4)     ||
                       ($.browser.opera    && parseFloat($.browser.version) > 10.4)  ||
+                      ($.browser.webkit   && parseFloat($.browser.version) > 534.53)  ||
                       ($.browser.mozilla  && parseFloat($.browser.version) > 3.9);
           };
 

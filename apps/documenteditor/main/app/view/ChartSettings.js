@@ -193,7 +193,11 @@ define([
                 }
 
                 var props3d = this.chartProps ? this.chartProps.getView3d() : null;
-                this.ShowHideElem(!!props3d);
+                if ( this._state.is3D!==!!props3d ) {
+                    this._state.is3D=!!props3d;
+                    this.ShowHideElem(this._state.is3D);
+                }
+
                 if (props3d) {
                     value = props3d.asc_getRotX();
                     if ((this._state.X===undefined || value===undefined)&&(this._state.X!==value) ||
@@ -276,6 +280,7 @@ define([
                 dataHintDirection: 'bottom',
                 dataHintOffset: 'big',
                 delayRenderTips: true,
+                fillOnChangeVisibility: true,
                 itemTemplate: _.template([
                     '<div class="item-icon-box" id="<%= id %>">',
                         '<img src="data:image/gif;base64,R0lGODlhAQABAID/AMDAwAAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==" ' +
@@ -734,7 +739,8 @@ define([
                     dataHint: '1',
                     dataHintDirection: 'bottom',
                     dataHintOffset: 'big',
-                    delayRenderTips: true
+                    delayRenderTips: true,
+                    fillOnChangeVisibility: true
                 });
                 this.cmbChartStyle.render($('#chart-combo-style'));
                 this.cmbChartStyle.openButton.menu.cmpEl.css({
@@ -775,6 +781,7 @@ define([
 
         ShowHideElem: function(is3D) {
             this.Chart3DContainer.toggleClass('settings-hidden', !is3D);
+            this.fireEvent('updatescroller', this);
         },
 
         onXRotation: function(field, newValue, oldValue, eOpts){

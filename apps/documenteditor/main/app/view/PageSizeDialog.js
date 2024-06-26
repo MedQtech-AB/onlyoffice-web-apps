@@ -58,7 +58,7 @@ define([
             }, options || {});
 
             this.template = [
-                '<div class="box" style="height: 85px;">',
+                '<div class="box">',
                     '<table cols="2" style="width: 100%;">',
                         '<tr>',
                             '<td colspan="2">',
@@ -77,8 +77,7 @@ define([
                             '</td>',
                         '</tr>',
                     '</table>',
-                '</div>',
-                '<div class="separator horizontal"></div>'
+                '</div>'
             ].join('');
 
             this.options.tpl = _.template(this.template)(this.options);
@@ -140,10 +139,10 @@ define([
                     { value: 6, displayValue: 'Envelope DL', size: [110, 220]},
                     { value: 7, displayValue: 'Tabloid', size: [279.4, 431.8]},
                     { value: 8, displayValue: 'A3', size: [297, 420]},
-                    { value: 9, displayValue: 'Tabloid Oversize', size: [304.8, 457.1]},
+                    { value: 9, displayValue: 'Tabloid Oversize', size: [296.9, 457.2]},
                     { value: 10, displayValue: 'ROC 16K', size: [196.8, 273]},
-                    { value: 11, displayValue: 'Envelope Choukei 3', size: [119.9, 234.9]},
-                    { value: 12, displayValue: 'Super B/A3', size: [330.2, 482.5]},
+                    { value: 11, displayValue: 'Envelope Choukei 3', size: [120, 235]},
+                    { value: 12, displayValue: 'Super B/A3', size: [305, 487]},
                     { value: 13, displayValue: 'A0', size: [841, 1189]},
                     { value: 14, displayValue: 'A1', size: [594, 841]},
                     { value: 16, displayValue: 'A2', size: [420, 594]},
@@ -173,7 +172,7 @@ define([
         },
 
         getFocusedComponents: function() {
-            return [this.cmbPreset, this.spnWidth, this.spnHeight];
+            return [this.cmbPreset, this.spnWidth, this.spnHeight].concat(this.getFooterButtons());
         },
 
         getDefaultFocusableComponent: function () {

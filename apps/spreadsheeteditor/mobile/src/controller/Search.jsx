@@ -1,6 +1,6 @@
-import React, { Fragment, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { List, ListItem, Toggle, BlockTitle, Navbar, NavRight, Link, Page } from 'framework7-react';
-import { SearchController, SearchView, SearchSettingsView } from '../../../../common/mobile/lib/controller/Search';
+import { SearchView, SearchSettingsView } from '../../../../common/mobile/lib/controller/Search';
 import { f7 } from 'framework7-react';
 import { withTranslation } from 'react-i18next';
 import { Dom7 } from 'framework7';
@@ -138,6 +138,7 @@ class SESearchView extends SearchView {
 const Search = withTranslation()(props => {
     const { t } = props;
     const _t = t('View.Settings', {returnObjects: true});
+    const [numberSearchResults, setNumberSearchResults] = useState(null);
 
     useEffect(() => {
         if (f7.searchbar.get('.searchbar')?.enabled && Device.phone) {
@@ -147,7 +148,7 @@ const Search = withTranslation()(props => {
         }
     });
 
-    const onSearchQuery = params => {
+    const onSearchQuery = (params, isSearchByTyping) => {
         const api = Common.EditorApi.get();
 
         let lookIn = +params.lookIn === 0;
@@ -167,7 +168,15 @@ const Search = withTranslation()(props => {
         if (params.highlight) api.asc_selectSearchingResults(true);
 
         api.asc_findText(options, function(resultCount) {
-            !resultCount && f7.dialog.alert(null, t('View.Settings.textNoMatches'));
+            if(!resultCount) {
+                setNumberSearchResults(0);
+
+                if(!isSearchByTyping) {
+                    f7.dialog.alert(null, t('View.Settings.textNoMatches'));
+                }
+            } else {
+                setNumberSearchResults(resultCount);
+            }
         });
     };
 
@@ -178,6 +187,8 @@ const Search = withTranslation()(props => {
     }
 
     const onReplaceQuery = params => {
+        if (!params.find) return;
+
         const api = Common.EditorApi.get();
 
         let lookIn = +params.lookIn === 0;
@@ -197,17 +208,13 @@ const Search = withTranslation()(props => {
         options.asc_setLookIn(lookIn ? Asc.c_oAscFindLookIn.Formulas : Asc.c_oAscFindLookIn.Value);
         options.asc_setIsReplaceAll(false);
 
-        api.asc_findText(options, function(resultCount) {
-            if(!resultCount) {
-                f7.dialog.alert(null, t('View.Settings.textNoMatches'));
-                return;
-            }
-            
-            api.asc_replaceText(options, params.replace || '', false);
-        });
+        api.asc_replaceText(options, params.replace || '', false);
+        setNumberSearchResults(numberSearchResults > 0 ? numberSearchResults - 1 : 0);
     }
 
     const onReplaceAllQuery = params => {
+        if (!params.find) return;
+
         const api = Common.EditorApi.get();
 
         let lookIn = +params.lookIn === 0;
@@ -227,17 +234,21 @@ const Search = withTranslation()(props => {
         options.asc_setLookIn(lookIn ? Asc.c_oAscFindLookIn.Formulas : Asc.c_oAscFindLookIn.Value);
         options.asc_setIsReplaceAll(true);
 
-        api.asc_findText(options, function(resultCount) {
-            if(!resultCount) {
-                f7.dialog.alert(null, t('View.Settings.textNoMatches'));
-                return;
-            }
-
-            api.asc_replaceText(options, params.replace || '', true);
-        });
+        api.asc_replaceText(options, params.replace || '', true);
+        setNumberSearchResults(0);
     }
 
-    return <SESearchView _t={_t} onSearchQuery={onSearchQuery} onchangeSearchQuery={onchangeSearchQuery} onReplaceQuery={onReplaceQuery} onReplaceAllQuery={onReplaceAllQuery} />
+    return (
+        <SESearchView 
+            _t={_t} 
+            onSearchQuery={onSearchQuery} 
+            onchangeSearchQuery={onchangeSearchQuery} 
+            onReplaceQuery={onReplaceQuery} 
+            onReplaceAllQuery={onReplaceAllQuery} 
+            numberSearchResults={numberSearchResults}
+            setNumberSearchResults={setNumberSearchResults}
+        />
+    )
 });
 
 const SearchSettingsWithTranslation = inject("storeAppOptions", "storeVersionHistory")(observer(withTranslation()(SearchSettings)));

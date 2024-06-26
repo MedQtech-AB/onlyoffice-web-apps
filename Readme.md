@@ -56,10 +56,12 @@ Require os is 64-bit Ubuntu 16.04
         "build": 22,
         ```
 
-3. Now, ready to start build process using following commands. Run one by one
+3. Now, ready to start build process using following commands. Run one by one in `git bash`
 
     ```
     cd build
+
+    npm run -g grunt
     ./sprites.sh
     npm install
     grunt
