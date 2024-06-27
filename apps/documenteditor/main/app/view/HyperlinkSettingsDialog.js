@@ -66,6 +66,8 @@ define([
                 title: this.textTitle
             }, options || {});
 
+			this.documentList = [];
+
             this.template = [
                 '<div class="box" style="height: 319px;">',
                     '<div class="input-row" style="margin-bottom: 10px;">',
@@ -222,10 +224,34 @@ define([
                 var val = record.displayValue;
                 Common.localStorage.setItem("editorUrl-val", JSON.stringify(val));
                 if (me.isAutoUpdate) {
-                    me.inputDisplay.setValue(val);
+					me.inputDisplay.setValue(record.defaultValue);
                     me.isTextChanged = true;
                 }
+				me.companyDocumentVersion(record.value);
             });
+
+			me.documentVersion = new Common.UI.ComboBox({
+				el: $("#id-dlg-hyperlink-version"),
+				cls: "input-group-nr",
+				menuStyle: "min-width: 85px;",
+				editable: false,
+				data: [],
+				placeHolder: "- Select Document Version -",
+				dataHint: "1",
+				dataHintDirection: "bottom",
+				dataHintOffset: "big",
+			});
+
+			me.documentVersion.on("selected", function (combo, record) {
+				me.isInputFirstChange && me.connectedDocumentList.showError();
+				me.isInputFirstChange = false;
+				var val = record.displayValue;
+				Common.localStorage.setItem("editorUrl-val", JSON.stringify(val));
+				if (me.isAutoUpdate) {
+					me.inputDisplay.setValue(record.defaultValue);
+					me.isTextChanged = true;
+				}
+			});	
 
             me.inputDisplay = new Common.UI.InputField({
                 el          : $('#id-dlg-hyperlink-display'),
@@ -454,15 +480,41 @@ define([
             throw new Error("Failed to fetch data");
           }
           const data = await response.json();
+		  me.documentList = data;
           // Process the data
-          const finalDocumentData = data.map((item) => ({
-			displayValue: `${item.title}, ${item.type_label}, ${item.doc_number}:${item.version} - ${item.created_by_company_has_user.user.first_name} ${item.created_by_company_has_user.user.last_name}`,
-            defaultValue: item.title,
-            value: item.id,
-          }));
+		  const finalDocumentData = data.map((document) => {
+            const item = document.documents[0];
+              return ({
+              displayValue: `${item.title}, ${item.type_label}, ${item.doc_number}:${item.version} - ${item.created_by_company_has_user.user.first_name} ${item.created_by_company_has_user.user.last_name}`,
+              defaultValue: item.title,
+              value: item.id,
+            });
+          });
           // Set the data for me.connectedDocumentList
           me.connectedDocumentList.setData(finalDocumentData);
         },
+
+		companyDocumentVersion: async function (documentId) {
+			var me = this;
+			const data = me.documentList.find((document) => document.documents[0].id === documentId);
+			
+			// Process the data
+			const finalDocumentVersionData = data.documents.map((document) => {
+				const item = document;
+				return ({
+				displayValue: `${item.title}, ${item.type_label}, ${item.doc_number}:${item.version} - ${item.created_by_company_has_user.user.first_name} ${item.created_by_company_has_user.user.last_name}`,
+				defaultValue: item.title,
+				value: item.id,
+				});
+			});
+			me.documentVersion.setDisabled(false);
+			me.documentVersion.setData([{
+				displayValue: "Always latest version",
+				defaultValue: finalDocumentVersionData[0].defaultValue,
+				value: "latest",
+			}, ...finalDocumentVersionData]);
+			me.documentVersion.setValue(finalDocumentVersionData[0].value);
+		},  
 
         onLinkTypeClick: function(type, btn, event) {
             this.ShowHideElem(type);
@@ -568,13 +620,20 @@ define([
           this.linkUrl = Common.localStorage.getItem("linkUrl");
           this.documentId = Common.localStorage.getItem("documentId");
 
+		  let idOfTo = Number(this.connectedDocumentList.getValue());
+          const documentVersion = this.documentVersion.getValue();
+          if (documentVersion !== "latest") {
+            idOfTo = Number(documentVersion);
+          }
+
           return await fetch(this.linkUrl, {
             method: "POST",
             body: JSON.stringify({
               link_to: this.documentLinkTo.getValue() || "Document",
-              id_of_to: Number(this.connectedDocumentList.getValue()),
+			  id_of_to: idOfTo,
               action: this.documentLinkAction.getValue() || "New Tab",
               document_id: Number(this.documentId),
+			  is_always_latest: documentVersion === "latest" ? true : false,
             }),
             headers: {
               Accept: "application/json",
@@ -830,6 +889,7 @@ define([
         textUrl:            'Link to',
 		textAction: 		"Action",
         textTarget: 		"Target to",
+		textVersion: 		"Version",
         textDisplay:        'Display',
         txtEmpty:           'This field is required',
         txtNotUrl:          'This field should be a URL in the format \"http://www.example.com\"',
